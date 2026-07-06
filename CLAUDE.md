@@ -16,7 +16,7 @@ Manages Figma Dev Mode statuses (`Ready for dev` / `Completed`) for Frames and S
 - `npm run build` — production build (minified)
 - `npm run check` — `tsc --noEmit` only, no bundling
 
-There is no lint/test setup. There is currently no git repo initialized in this directory either — if git workflow is needed, run `git init` first (see the imported git-workflow rule above).
+There is no lint/test setup. The directory is a git repository — follow the imported git-workflow rule above for all branching and commits.
 
 ## Architecture
 
