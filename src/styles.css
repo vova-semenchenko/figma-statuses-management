@@ -24,6 +24,10 @@
   --done-bg:      #d1fae5;
   --done-border:  #6ee7b7;
 
+  --changed-color:  #b91c1c;
+  --changed-bg:     #fee2e2;
+  --changed-border: #fca5a5;
+
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────────── */
@@ -216,12 +220,13 @@ table {
 }
 
 /* column widths */
-.col-cb     { width: 36px; }
-.col-name   { width: auto; min-width: 110px; }
-.col-type   { width: 74px; }
-.col-status { width: 118px; }
-.col-page   { width: 90px; }
-.col-action { width: 72px; }
+.col-cb      { width: 36px; }
+.col-name    { width: auto; min-width: 110px; }
+.col-type    { width: 74px; }
+.col-status  { width: 118px; }
+.col-changed { width: 96px; }
+.col-page    { width: 90px; }
+.col-action  { width: 92px; }
 
 thead { position: sticky; top: 0; z-index: 1; background: var(--bg); }
 thead th {
@@ -315,6 +320,16 @@ td.col-action { text-align: right; }
 
 .badge-done   { background: var(--done-bg);   color: var(--done-color);   border-color: var(--done-border); }
 .badge-done .badge-dot { background: var(--done-color); }
+
+/* ── Changed-state badge (plugin-tracked baseline) ─────────────────────────── */
+.badge-changed { background: var(--changed-bg); color: var(--changed-color); border-color: var(--changed-border); }
+.badge-changed .badge-dot { background: var(--changed-color); }
+
+.badge-insync { background: var(--muted); color: var(--muted-fg); border-color: var(--border); }
+.badge-insync .badge-dot { background: var(--muted-fg); }
+
+.badge-nobaseline { background: transparent; color: var(--muted-fg); border-style: dashed; border-color: var(--border); }
+.badge-nobaseline .badge-dot { background: var(--border); }
 
 
 /* ── Type chip ─────────────────────────────────────────────────────────────── */

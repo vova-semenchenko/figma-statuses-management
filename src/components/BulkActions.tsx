@@ -3,6 +3,7 @@ import type { SetStatusType } from '../types';
 interface Props {
   selectedCount: number;
   onSetStatus: (status: SetStatusType) => void;
+  onSetBaseline: () => void;
   onSelectInFigma: () => void;
   onClearSelection: () => void;
 }
@@ -10,6 +11,7 @@ interface Props {
 export function BulkActions({
   selectedCount,
   onSetStatus,
+  onSetBaseline,
   onSelectInFigma,
   onClearSelection,
 }: Props) {
@@ -23,6 +25,14 @@ export function BulkActions({
 
       <button class="btn btn-outline btn-sm" onClick={() => onSetStatus('COMPLETED')}>
         → Completed
+      </button>
+
+      <button
+        class="btn btn-outline btn-sm"
+        onClick={onSetBaseline}
+        title="Record the current state of selected nodes as the reference for change tracking"
+      >
+        Set baseline
       </button>
 
       <button

@@ -1,6 +1,7 @@
 /// <reference types="@figma/plugin-typings" />
 
-import type { UiMessage, PluginMessage, NodeInfo, DevStatusType } from './types';
+import type { UiMessage, PluginMessage, NodeInfo, DevStatusType, ChangedState } from './types';
+import { getChangedState, writeBaseline } from './fingerprint';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ function collectNodes(
     if (isFrameOrSection(node)) {
       const status = readStatus(node);
       if (status !== null) {
+        const { changed, baselineTs } = getChangedState(node, status);
         result.push({
           id: node.id,
           name: node.name,
@@ -29,6 +31,8 @@ function collectNodes(
           status,
           pageName,
           pageId,
+          changed,
+          baselineTs,
         });
       }
     }
@@ -58,7 +62,7 @@ function findParentPage(node: BaseNode): PageNode | null {
 
 export default function () {
   figma.showUI(__html__, {
-    width: 720,
+    width: 780,
     height: 580,
     title: 'Statuses Management',
     themeColors: true,
@@ -90,15 +94,38 @@ export default function () {
 
     // ── SET_STATUS ────────────────────────────────────────────────────────────
     case 'SET_STATUS': {
-      const updates: Array<{ nodeId: string; status: DevStatusType }> = [];
+      const updates: Array<{
+        nodeId: string;
+        status: DevStatusType;
+        changed: ChangedState;
+        baselineTs: number;
+      }> = [];
       for (const nodeId of raw.nodeIds) {
         const node = figma.getNodeById(nodeId);
         if (node && isFrameOrSection(node)) {
           node.devStatus = { type: raw.status };
-          updates.push({ nodeId, status: raw.status });
+          const baseline = writeBaseline(node, raw.status);
+          updates.push({ nodeId, status: raw.status, changed: 'UNCHANGED', baselineTs: baseline.t });
         }
       }
       figma.ui.postMessage({ type: 'STATUS_UPDATED', updates } satisfies PluginMessage);
+      break;
+    }
+
+    // ── SET_BASELINE ──────────────────────────────────────────────────────────
+    case 'SET_BASELINE': {
+      const updates: Array<{ nodeId: string; baselineTs: number }> = [];
+      for (const nodeId of raw.nodeIds) {
+        const node = figma.getNodeById(nodeId);
+        if (node && isFrameOrSection(node)) {
+          const status = readStatus(node);
+          if (status !== null) {
+            const baseline = writeBaseline(node, status);
+            updates.push({ nodeId, baselineTs: baseline.t });
+          }
+        }
+      }
+      figma.ui.postMessage({ type: 'BASELINE_SET', updates } satisfies PluginMessage);
       break;
     }
 

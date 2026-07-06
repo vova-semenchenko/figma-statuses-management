@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { NodeInfo, SetStatusType } from '../types';
 import { StatusBadge } from './StatusBadge';
+import { ChangedBadge } from './ChangedBadge';
 
 interface Props {
   nodes: NodeInfo[];
@@ -12,6 +13,7 @@ interface Props {
   onSelectRow: (id: string, checked: boolean) => void;
   onNavigate: (nodeId: string, pageId: string) => void;
   onSetStatus: (nodeId: string, status: SetStatusType) => void;
+  onSetBaseline: (nodeId: string) => void;
 }
 
 /** Checkbox that supports the indeterminate visual state via a ref. */
@@ -73,6 +75,7 @@ export function NodeTable({
   onSelectRow,
   onNavigate,
   onSetStatus,
+  onSetBaseline,
 }: Props) {
   if (loading) {
     return (
@@ -93,6 +96,7 @@ export function NodeTable({
           <col class="col-name" />
           <col class="col-type" />
           <col class="col-status" />
+          <col class="col-changed" />
           <col class="col-page" />
           <col class="col-action" />
         </colgroup>
@@ -108,6 +112,7 @@ export function NodeTable({
             <th class="col-name">Name</th>
             <th class="col-type">Type</th>
             <th class="col-status">Status</th>
+            <th class="col-changed">Changes</th>
             <th class="col-page">Page</th>
             <th class="col-action">Actions</th>
           </tr>
@@ -121,6 +126,7 @@ export function NodeTable({
               onSelect={(checked) => onSelectRow(node.id, checked)}
               onNavigate={() => onNavigate(node.id, node.pageId)}
               onSetStatus={(status) => onSetStatus(node.id, status)}
+              onSetBaseline={() => onSetBaseline(node.id)}
             />
           ))}
         </tbody>
@@ -137,9 +143,10 @@ interface RowProps {
   onSelect: (checked: boolean) => void;
   onNavigate: () => void;
   onSetStatus: (status: SetStatusType) => void;
+  onSetBaseline: () => void;
 }
 
-function NodeRow({ node, selected, onSelect, onNavigate, onSetStatus }: RowProps) {
+function NodeRow({ node, selected, onSelect, onNavigate, onSetStatus, onSetBaseline }: RowProps) {
   return (
     <tr>
       {/* Checkbox */}
@@ -169,6 +176,11 @@ function NodeRow({ node, selected, onSelect, onNavigate, onSetStatus }: RowProps
       {/* Status */}
       <td class="col-status">
         <StatusBadge status={node.status} />
+      </td>
+
+      {/* Changes */}
+      <td class="col-changed">
+        <ChangedBadge changed={node.changed} baselineTs={node.baselineTs} />
       </td>
 
       {/* Page */}
@@ -204,6 +216,14 @@ function NodeRow({ node, selected, onSelect, onNavigate, onSetStatus }: RowProps
               title="Set Completed"
             >
               C
+            </button>
+            <button
+              class="btn btn-ghost btn-sm"
+              style={{ fontSize: '10px', padding: '2px 5px' }}
+              onClick={onSetBaseline}
+              title="Set baseline (record current state as the reference for change tracking)"
+            >
+              B
             </button>
           </span>
         </div>

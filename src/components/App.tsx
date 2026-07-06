@@ -5,6 +5,7 @@ import type {
   Scope,
   SetStatusType,
   FilterStatus,
+  FilterChanged,
 } from '../types';
 import { FilterBar } from './FilterBar';
 import { BulkActions } from './BulkActions';
@@ -23,6 +24,7 @@ export function App() {
   const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set());
   const [page,         setPage]         = useState(1);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('ALL');
+  const [filterChanged, setFilterChanged] = useState<FilterChanged>('ALL');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [loading,      setLoading]      = useState(false);
   const [hasScanned,   setHasScanned]   = useState(false);
@@ -43,9 +45,26 @@ export function App() {
           setError(null);
           break;
         case 'STATUS_UPDATED': {
-          const next = new Map(msg.updates.map(u => [u.nodeId, u.status]));
+          const next = new Map(msg.updates.map(u => [u.nodeId, u]));
           setNodes(prev =>
-            prev.map(n => { const s = next.get(n.id); return s !== undefined ? { ...n, status: s } : n; }),
+            prev.map(n => {
+              const u = next.get(n.id);
+              return u !== undefined
+                ? { ...n, status: u.status, changed: u.changed, baselineTs: u.baselineTs }
+                : n;
+            }),
+          );
+          break;
+        }
+        case 'BASELINE_SET': {
+          const next = new Map(msg.updates.map(u => [u.nodeId, u.baselineTs]));
+          setNodes(prev =>
+            prev.map(n => {
+              const ts = next.get(n.id);
+              return ts !== undefined
+                ? { ...n, changed: 'UNCHANGED', baselineTs: ts }
+                : n;
+            }),
           );
           break;
         }
@@ -74,6 +93,10 @@ export function App() {
     send({ type: 'SET_STATUS', nodeIds, status });
   }, []);
 
+  const handleSetBaseline = useCallback((nodeIds: string[]) => {
+    send({ type: 'SET_BASELINE', nodeIds });
+  }, []);
+
   const handleNavigate = useCallback((nodeId: string, pageId: string) => {
     send({ type: 'NAVIGATE_TO_NODE', nodeId, pageId });
   }, []);
@@ -87,13 +110,14 @@ export function App() {
     const q = searchQuery.trim().toLowerCase();
     return nodes.filter(n => {
       const matchStatus = filterStatus === 'ALL' || n.status === filterStatus;
+      const matchChanged = filterChanged === 'ALL' || n.changed === filterChanged;
       const matchSearch =
         !q ||
         n.name.toLowerCase().includes(q) ||
         n.pageName.toLowerCase().includes(q);
-      return matchStatus && matchSearch;
+      return matchStatus && matchChanged && matchSearch;
     });
-  }, [nodes, filterStatus, searchQuery]);
+  }, [nodes, filterStatus, filterChanged, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredNodes.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages);
@@ -129,10 +153,12 @@ export function App() {
       <FilterBar
         scope={scope}
         filterStatus={filterStatus}
+        filterChanged={filterChanged}
         searchQuery={searchQuery}
         loading={loading}
         onScopeChange={triggerScan}
         onFilterStatusChange={(s) => { setFilterStatus(s); setPage(1); }}
+        onFilterChangedChange={(c) => { setFilterChanged(c); setPage(1); }}
         onSearchChange={(q) => { setSearchQuery(q); setPage(1); }}
       />
 
@@ -140,6 +166,7 @@ export function App() {
         <BulkActions
           selectedCount={selectedArray.length}
           onSetStatus={(status) => handleSetStatus(selectedArray, status)}
+          onSetBaseline={() => handleSetBaseline(selectedArray)}
           onSelectInFigma={() => handleSelectInFigma(selectedArray)}
           onClearSelection={() => setSelectedIds(new Set())}
         />
@@ -182,6 +209,7 @@ export function App() {
           onSelectRow={handleSelectRow}
           onNavigate={handleNavigate}
           onSetStatus={(nodeId, status) => handleSetStatus([nodeId], status)}
+          onSetBaseline={(nodeId) => handleSetBaseline([nodeId])}
         />
       </div>
 
@@ -226,9 +254,11 @@ export function App() {
       <div class="limitation-notice">
         <span>ℹ</span>
         <span>
-          The yellow "changed" indicator in Figma UI is visual only — the Plugin API
-          exposes only <strong>Ready for dev</strong> and <strong>Completed</strong>.
-          Changed items are shown under their base status.
+          Figma's native "changed" indicator isn't exposed to plugins, so the{' '}
+          <strong>Changes</strong> column tracks this plugin's own baseline: setting a
+          status here (or clicking <strong>Set baseline</strong>) records a snapshot,
+          and each <strong>Rescan</strong> compares against it. Statuses set outside
+          the plugin show as <strong>No baseline</strong>.
         </span>
       </div>
     </div>

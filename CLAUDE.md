@@ -22,7 +22,7 @@ There is no lint/test setup. There is currently no git repo initialized in this 
 
 Two isolated threads, communicating only via typed `postMessage` (`src/types.ts`):
 
-- **Plugin thread** — `src/main.ts`. Only place with `figma.*` API access. No DOM.
+- **Plugin thread** — `src/main.ts` + `src/fingerprint.ts`. Only place with `figma.*` API access. No DOM. `fingerprint.ts` handles change tracking: subtree hashing and baseline storage via `setPluginData`.
 - **UI thread** — `src/ui.tsx` + `src/components/*`. Preact app, sandboxed iframe, no `figma.*` access.
 
 When adding a feature, extend the `UiMessage`/`PluginMessage` union types in `src/types.ts` first, then implement the handler in `main.ts` and the sender/listener in `App.tsx`. Never call `figma.*` from anything under `src/components` or `src/ui.tsx`.
@@ -35,4 +35,6 @@ State lives entirely in `App.tsx` via Preact hooks — there is no store/reducer
 
 ## Known platform limitation
 
-The Figma Plugin API does not expose the "Completed Changed" indicator that the Figma app shows visually (`node.devStatus.type` only ever returns `READY_FOR_DEV` or `COMPLETED`). This is surfaced to users via a persistent notice in the UI — don't try to "fix" this by reading some other node property, it isn't exposed anywhere in the API.
+The Figma Plugin API does not expose the "Completed Changed" indicator that the Figma app shows visually (`node.devStatus.type` only ever returns `READY_FOR_DEV` or `COMPLETED`). Don't try to "fix" this by reading some other node property, it isn't exposed anywhere in the API.
+
+Instead, the plugin tracks its **own** equivalent via `src/fingerprint.ts`: setting a status through the plugin (or the explicit Set baseline action) stores a subtree-hash baseline in `setPluginData`; each scan recomputes and compares it (`CHANGED` / `UNCHANGED` / `NO_BASELINE`). The heuristic deliberately mirrors Figma's exceptions — instance children are skipped and variable/style ids are hashed instead of resolved values. When changing what the fingerprint covers, bump `FP_VERSION` in `fingerprint.ts` (old baselines then degrade to `NO_BASELINE` instead of producing false verdicts). The UI notice explains this model to users.

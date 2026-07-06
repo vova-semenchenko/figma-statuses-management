@@ -400,6 +400,42 @@ The final build artifacts are:
 
 ---
 
+## Change Tracking (baseline fingerprints)
+
+Because the Plugin API does not expose Figma's native "Changed" indicator (see
+Known Limitations below), the plugin tracks its own equivalent in
+`src/fingerprint.ts`:
+
+- **Baseline** — `{ v, h, t, s }` (algorithm version, subtree hash, timestamp,
+  status at capture time) stored on the node via
+  `setPluginData('baseline', …)`. pluginData lives in the Figma file, so
+  baselines persist across sessions and are shared between users.
+- **Fingerprint** — FNV-1a hash (two seeded 32-bit passes) over an iterative
+  serialization of the subtree: geometry, layout, shape, text and paint
+  properties. Normalization mirrors Figma's own exceptions: instance children
+  are skipped (main component id + component properties are hashed instead),
+  and variable/style **ids** are hashed rather than resolved values, so value
+  changes of attached variables/styles don't count as changes. The root node's
+  own x/y is excluded — repositioning a frame on canvas is not a content
+  change.
+- **State derivation** (`getChangedState`, evaluated during `SCAN`):
+  - `NO_BASELINE` — no pluginData, unparsable/version-mismatched data, or the
+    stored status differs from the current one (status changed outside the
+    plugin → baseline is stale).
+  - `CHANGED` / `UNCHANGED` — recomputed hash vs. stored hash.
+- **Baseline writes** — on `SET_STATUS` (automatic) and on the explicit
+  `SET_BASELINE` message (per-row **B** button or bulk **Set baseline**). The
+  plugin replies with `STATUS_UPDATED` (now carrying `changed` + `baselineTs`)
+  or `BASELINE_SET` respectively; the UI patches its local state without a
+  rescan.
+- **UI** — `NodeInfo.changed` / `NodeInfo.baselineTs` render as the **Changes**
+  column (`ChangedBadge`: Changed / In sync / No baseline) with a matching
+  filter select in the `FilterBar`.
+
+State is only re-evaluated on scan — there is no `documentchange` listener.
+
+---
+
 ## Known Limitations
 
 ### "Completed Changed" state is not exposed by the Plugin API
@@ -408,4 +444,9 @@ Figma visually shows a **yellow "Changed"** indicator when a node marked `Comple
 
 > From the official Figma docs: *"Currently, the Plugin API does not reflect if a node has been changed since a status was set, but this can be seen in the app."*
 
-The plugin surfaced this limitation via a persistent amber notice bar at the bottom of the UI. Nodes in the "Changed" state appear under their base status (`COMPLETED`).
+The plugin surfaces this limitation via a persistent notice bar at the bottom of the UI and works around it with its own baseline tracking (see **Change Tracking** above). The plugin-tracked state is independent of Figma's native indicator: it only updates through plugin actions and cannot read or clear the indicator shown in the Figma app.
+
+Deliberate gaps of the fingerprint heuristic:
+- Edits **inside component instances** are not detected (children are skipped).
+- Value changes of **attached variables/styles** are intentionally ignored (matches Figma's behaviour).
+- Detection happens only on **Rescan**, not live.

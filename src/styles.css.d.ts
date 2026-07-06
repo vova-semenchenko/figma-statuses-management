@@ -2,8 +2,11 @@ declare const styles: {
   readonly "active": string;
   readonly "app": string;
   readonly "badge": string;
+  readonly "badge-changed": string;
   readonly "badge-done": string;
   readonly "badge-dot": string;
+  readonly "badge-insync": string;
+  readonly "badge-nobaseline": string;
   readonly "badge-ready": string;
   readonly "btn": string;
   readonly "btn-default": string;
@@ -18,6 +21,7 @@ declare const styles: {
   readonly "cell-page": string;
   readonly "col-action": string;
   readonly "col-cb": string;
+  readonly "col-changed": string;
   readonly "col-name": string;
   readonly "col-page": string;
   readonly "col-status": string;
