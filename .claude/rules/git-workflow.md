@@ -72,6 +72,12 @@ git rebase origin/main
 git push -u origin feat/<short-description>
 ```
 
+**No `origin` configured yet?** Check with `git remote -v` first. If empty, skip
+steps 1's `pull` and step 4 entirely (there's nothing to sync with) — just branch
+off local `main` and commit. Pushing (step 5) requires the user to add a remote
+first (`git remote add origin <url>`); don't add a remote yourself without being
+asked.
+
 ## Commit messages (Conventional Commits)
 
 ```
@@ -89,7 +95,7 @@ git push -u origin feat/<short-description>
 
 When (and only when) the user asks to integrate a branch:
 
-1. Make sure the branch is rebased on the latest `origin/main` and the build/tests pass.
+1. Make sure the branch is rebased on the latest `origin/main` and `npm run check && npm run build` succeed (this project has no test suite).
 2. Prefer a **Pull Request** for review; merge with the user's chosen strategy
    (squash merge is a sensible default for a clean history).
 3. After merge, delete the feature branch (local and remote).
