@@ -16,7 +16,9 @@ A standard, trunk-based feature-branch workflow. `main` is always releasable.
    if the user explicitly said *not* to commit at this point, honour that until
    they say otherwise; and if they explicitly ask for a commit at a specific
    moment, commit then as asked. **Push is still only on the user's explicit
-   request** — never push unprompted.
+   request** — never push unprompted. One carve-out: an explicit integration
+   request authorizes the pushes the PR flow requires — see
+   *Integrating into `main`* below.
 
 ## Before starting work — always verify the current branch
 
@@ -68,7 +70,8 @@ git commit -m "feat: <imperative summary>"
 git fetch origin
 git rebase origin/main
 
-# 5. Push the branch (only when asked)
+# 5. Push the branch (only when asked, or as part of a requested integration —
+#    see "Integrating into main" below)
 git push -u origin feat/<short-description>
 ```
 
@@ -93,25 +96,51 @@ asked.
 
 ## Integrating into `main` — only on the user's request
 
-When (and only when) the user asks to integrate a branch:
+When (and only when) the user asks to integrate a branch ("merge to main",
+"інтегруй гілку"), use the **PR flow** below. **The integration request itself
+authorizes exactly the pushes this flow requires** — pushing the feature branch
+to open the PR, and the PR merge updating `origin/main` — and nothing else.
+Pushing `main` directly remains forbidden.
 
-1. Make sure the branch is rebased on the latest `origin/main` and `npm run check && npm run build` succeed (this project has no test suite).
-2. Prefer a **Pull Request** for review; merge with the user's chosen strategy
-   (squash merge is a sensible default for a clean history).
-3. After merge, delete the feature branch (local and remote).
+1. **Check the base first**: if local `main` is ahead of `origin/main`
+   (`git rev-list origin/main..main --count`), stop and ask the user to push
+   `main` — otherwise the PR would target a stale base.
+2. Make sure the branch is rebased on the latest `origin/main` and
+   `npm run check && npm run build` succeed (this project has no test suite).
+3. Push the branch, open a **Pull Request**, and merge it with the user's chosen
+   strategy (squash merge is a sensible default for a clean history).
+4. After the merge, sync local `main` and delete the feature branch (local and
+   remote — `gh pr merge --delete-branch` handles both).
 
 ```bash
-# Open a PR (does NOT merge — safe to prepare without an explicit merge request)
+# 1. Push the branch and open the PR
+git push -u origin feat/<short-description>
 gh pr create --base main --head feat/<short-description>
+# (a bare "open a PR" request stops here — opening a PR does NOT merge it)
 
-# Merge ONLY after the user explicitly asks:
+# 2. Merge — covered by the user's integration request:
 gh pr merge --squash --delete-branch
+
+# 3. Sync local main afterwards
+git checkout main
+git pull --ff-only origin main
+```
+
+**No GitHub remote?** Fall back to a local squash merge — then nothing is
+pushed at all:
+
+```bash
+git checkout main
+git merge --squash feat/<short-description> && git commit
+git branch -D feat/<short-description>
 ```
 
 ## Don't
 
 - ❌ `git push origin main`, merge a feature branch into `main`, or fast-forward
-  `main` without an explicit user request.
+  `main` without an explicit user request. (`origin/main` is normally updated
+  only by PR merges; pushing local `main` to fix a lag needs its own explicit
+  request.)
 - ❌ Force-push to `main` (or any shared branch) — ever.
 - ❌ Commit unrelated changes together; keep each branch and commit focused.
 - ❌ Leave merged branches lingering — delete them after integration.
