@@ -1,0 +1,27 @@
+{
+  "name": "statuses-management",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manage dev statuses (Ready for dev / Completed) for Frames and Sections across Figma pages.",
+  "scripts": {
+    "build": "build-figma-plugin --typecheck --minify && node scripts/create-html.js",
+    "dev":   "build-figma-plugin --typecheck --watch && node scripts/create-html.js",
+    "check": "tsc --noEmit"
+  },
+  "figma-plugin": {
+    "editorType": ["figma"],
+    "id": "REPLACE_WITH_YOUR_PLUGIN_ID",
+    "name": "Statuses Management",
+    "main": "src/main.ts",
+    "ui":   "src/ui.tsx"
+  },
+  "devDependencies": {
+    "@create-figma-plugin/build":    "^4.0.3",
+    "@create-figma-plugin/tsconfig": "^4.0.3",
+    "@figma/plugin-typings":         "*",
+    "typescript":                    "^5.4.5"
+  },
+  "dependencies": {
+    "preact": "^10.22.0"
+  }
+}

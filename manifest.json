@@ -1,0 +1,10 @@
+{
+  "api": "1.0.0",
+  "editorType": [
+    "figma"
+  ],
+  "id": "REPLACE_WITH_YOUR_PLUGIN_ID",
+  "name": "Statuses Management",
+  "main": "build/main.js",
+  "ui": "build/ui.html"
+}
